@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -10,6 +12,7 @@ const Login = () => {
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -18,12 +21,15 @@ const Login = () => {
       [name]: type === 'checkbox' ? checked : value,
     });
     
-    // Clear error when user starts typing
+    // Clear errors when user starts typing
     if (errors[name]) {
       setErrors({
         ...errors,
-        [name]: '',
+        [name]: ''
       });
+    }
+    if (apiError) {
+      setApiError('');
     }
   };
 
@@ -40,26 +46,33 @@ const Login = () => {
     // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (validateForm()) {
       setIsLoading(true);
+      setApiError('');
       
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false);
-        // Redirect to home page after successful login
+      try {
+        const result = await login(formData.email, formData.password);
+
+        if (!result.success) {
+          throw new Error(result.error || 'Login failed');
+        }
+
+        // Redirect to home page
         navigate('/');
-      }, 1500);
+      } catch (error) {
+        setApiError(error.message);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -77,10 +90,16 @@ const Login = () => {
               Sign in to your account to continue
             </p>
           </div>
+
+          {apiError && (
+            <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg">
+              {apiError}
+            </div>
+          )}
           
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Input */}
-            <div className="mb-4">
+            <div>
               <label 
                 htmlFor="email" 
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
@@ -104,7 +123,7 @@ const Login = () => {
             </div>
             
             {/* Password Input */}
-            <div className="mb-4">
+            <div>
               <div className="flex justify-between items-center mb-1">
                 <label 
                   htmlFor="password" 
@@ -136,7 +155,7 @@ const Login = () => {
             </div>
             
             {/* Remember Me Checkbox */}
-            <div className="flex items-center mb-6">
+            <div className="flex items-center">
               <input
                 type="checkbox"
                 id="rememberMe"

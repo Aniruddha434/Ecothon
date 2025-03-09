@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import RestaurantAnalytics from '../components/RestaurantAnalytics';
+import { useAuth } from '../context/AuthContext';
+import MenuManagement from '../components/MenuManagement';
 
-// Mock data for restaurant
-const mockRestaurant = {
+// Mock data for restaurants
+const mockRestaurants = {
+  1: {
   id: 1,
   name: 'Green Bistro',
   image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1080&q=80',
@@ -14,6 +17,67 @@ const mockRestaurant = {
   totalOrders: 1245,
   totalRevenue: 28750.50,
   co2Saved: 325.5,
+  },
+  2: {
+    id: 2,
+    name: 'Veggie Delight',
+    image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1080&q=80',
+    address: '456 Veg Lane, Eco City',
+    phone: '+1 (555) 234-5678',
+    email: 'info@veggiedelight.com',
+    rating: 4.7,
+    totalOrders: 980,
+    totalRevenue: 22450.75,
+    co2Saved: 275.2,
+  },
+  3: {
+    id: 3,
+    name: 'Ocean Fresh',
+    image: 'https://images.unsplash.com/photo-1590846406792-0adc7f938f1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1080&q=80',
+    address: '789 Ocean Drive, Eco City',
+    phone: '+1 (555) 345-6789',
+    email: 'info@oceanfresh.com',
+    rating: 4.6,
+    totalOrders: 850,
+    totalRevenue: 24680.30,
+    co2Saved: 245.8,
+  },
+  4: {
+    id: 4,
+    name: 'Eco Burger',
+    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1080&q=80',
+    address: '321 Burger Street, Eco City',
+    phone: '+1 (555) 456-7890',
+    email: 'info@ecoburger.com',
+    rating: 4.5,
+    totalOrders: 1120,
+    totalRevenue: 19875.60,
+    co2Saved: 298.4,
+  },
+  5: {
+    id: 5,
+    name: 'Green Curry House',
+    image: 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1080&q=80',
+    address: '567 Curry Lane, Eco City',
+    phone: '+1 (555) 567-8901',
+    email: 'info@greencurry.com',
+    rating: 4.7,
+    totalOrders: 930,
+    totalRevenue: 21340.80,
+    co2Saved: 265.9,
+  },
+  6: {
+    id: 6,
+    name: 'Sustainable Sushi',
+    image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1080&q=80',
+    address: '890 Sushi Way, Eco City',
+    phone: '+1 (555) 678-9012',
+    email: 'info@sustainablesushi.com',
+    rating: 4.8,
+    totalOrders: 875,
+    totalRevenue: 26540.90,
+    co2Saved: 285.3,
+  }
 };
 
 // Mock data for orders
@@ -116,24 +180,60 @@ const mockOrders = [
 ];
 
 const RestaurantDashboard = () => {
+  const navigate = useNavigate();
+  const { user, isRestaurantOwner, getRestaurantId } = useAuth();
   const [restaurant, setRestaurant] = useState(null);
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
-  const [activeTab, setActiveTab] = useState('new');
+  const [activeTab, setActiveTab] = useState('orders');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [dashboardView, setDashboardView] = useState('orders'); // 'orders' or 'analytics'
 
-  // Simulate API call to get restaurant data and orders
   useEffect(() => {
-    setTimeout(() => {
-      setRestaurant(mockRestaurant);
-      setOrders(mockOrders);
-      setFilteredOrders(mockOrders.filter(order => order.status === 'new'));
-      setIsLoading(false);
-    }, 1000);
-  }, []);
+    // Check if user is logged in and is a restaurant owner
+    if (!isRestaurantOwner()) {
+      navigate('/restaurant-login');
+      return;
+    }
+
+    const fetchOrders = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:5000/api/orders/restaurant', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch orders');
+        }
+
+        const data = await response.json();
+        setOrders(data);
+        setFilteredOrders(data);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Get the restaurant data based on the user's restaurant ID
+    const restaurantId = getRestaurantId();
+    const restaurantData = mockRestaurants[restaurantId];
+    setRestaurant(restaurantData);
+
+    // Fetch orders
+    fetchOrders();
+
+    // Set up polling to check for new orders every 30 seconds
+    const pollInterval = setInterval(fetchOrders, 30000);
+
+    return () => clearInterval(pollInterval);
+  }, [navigate, isRestaurantOwner, getRestaurantId]);
 
   // Filter orders based on active tab
   useEffect(() => {
@@ -145,27 +245,45 @@ const RestaurantDashboard = () => {
   }, [activeTab, orders]);
 
   // Handle order status change
-  const handleStatusChange = (orderId, newStatus) => {
-    const updatedOrders = orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    );
-    setOrders(updatedOrders);
-    
-    // Close order details if the order status is changed
-    if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder({ ...selectedOrder, status: newStatus });
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update order status');
+      }
+
+      // Update the order in the local state
+      const updatedOrders = orders.map(order => 
+        order._id === orderId ? { ...order, status: newStatus } : order
+      );
+      setOrders(updatedOrders);
+      setFilteredOrders(updatedOrders.filter(order => 
+        activeTab === 'all' || order.status === activeTab
+      ));
+    } catch (error) {
+      console.error('Error updating order status:', error);
     }
   };
 
   // View order details
-  const viewOrderDetails = (order) => {
+  const openOrderDetails = (order) => {
     setSelectedOrder(order);
-    setIsOrderDetailsOpen(true);
+    setIsModalOpen(true);
   };
 
   // Close order details
   const closeOrderDetails = () => {
-    setIsOrderDetailsOpen(false);
+    setIsModalOpen(false);
+    setSelectedOrder(null);
   };
 
   // Format date
@@ -219,33 +337,42 @@ const RestaurantDashboard = () => {
   return (
     <div className="pt-24 pb-16">
       <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-dark dark:text-white">
+            {user?.name} Dashboard
+          </h1>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Active Orders: {orders.filter(order => order.status !== 'completed').length}
+          </div>
+        </div>
+
         {/* Restaurant Info */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             <img 
-              src={restaurant.image} 
-              alt={restaurant.name} 
+              src={restaurant?.image} 
+              alt={restaurant?.name} 
               className="w-24 h-24 rounded-full object-cover"
             />
             <div className="flex-grow text-center md:text-left">
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {restaurant.name} Dashboard
+                {restaurant?.name} Dashboard
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                {restaurant.address} • {restaurant.phone}
+                {restaurant?.address} • {restaurant?.phone}
               </p>
               <div className="flex flex-wrap justify-center md:justify-start gap-4">
                 <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-400">Total Orders</p>
-                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{restaurant.totalOrders}</p>
+                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{restaurant?.totalOrders}</p>
                 </div>
                 <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-400">Total Revenue</p>
-                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">${restaurant.totalRevenue.toFixed(2)}</p>
+                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">${restaurant?.totalRevenue.toFixed(2)}</p>
                 </div>
                 <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-400">CO₂ Saved</p>
-                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{restaurant.co2Saved} kg</p>
+                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{restaurant?.co2Saved} kg</p>
                 </div>
               </div>
             </div>
@@ -382,7 +509,7 @@ const RestaurantDashboard = () => {
                               </span>
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {formatDate(order.orderTime)} • {order.customer.name} • {order.customer.phone}
+                              {formatDate(order.orderTime)} • {order.customerName} • {order.customer.phone}
                             </p>
                           </div>
                           <div className="mt-2 md:mt-0 flex items-center">
@@ -405,7 +532,7 @@ const RestaurantDashboard = () => {
                         
                         <div className="flex flex-wrap gap-2">
                           <button
-                            onClick={() => viewOrderDetails(order)}
+                            onClick={() => openOrderDetails(order)}
                             className="px-3 py-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md text-sm"
                           >
                             View Details
@@ -460,7 +587,7 @@ const RestaurantDashboard = () => {
       </div>
 
       {/* Order Details Modal */}
-      {isOrderDetailsOpen && selectedOrder && (
+      {isModalOpen && selectedOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
@@ -517,8 +644,7 @@ const RestaurantDashboard = () => {
               
               <div className="mb-6">
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Customer Information</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-1">{selectedOrder.customer.name}</p>
-                <p className="text-gray-600 dark:text-gray-400 mb-1">{selectedOrder.customer.phone}</p>
+                <p className="text-gray-600 dark:text-gray-400 mb-1">{selectedOrder.customerName}</p>
                 <p className="text-gray-600 dark:text-gray-400">{selectedOrder.customer.address}</p>
               </div>
               

@@ -6,7 +6,7 @@ const Checkout = () => {
   const [cart, setCart] = useState([]);
   const [deliveryMethod, setDeliveryMethod] = useState('bike');
   const [co2Savings, setCo2Savings] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState('cod');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -17,6 +17,7 @@ const Checkout = () => {
     cardNumber: '',
     cardExpiry: '',
     cardCvv: '',
+    specialInstructions: ''
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -25,15 +26,20 @@ const Checkout = () => {
 
   // Simulate fetching cart data from localStorage or context
   useEffect(() => {
-    // Mock cart data
-    const mockCart = [
-      { id: 101, name: 'Organic Garden Salad', price: 8.99, quantity: 1 },
-      { id: 104, name: 'Vegetable Risotto', price: 14.99, quantity: 2 },
-      { id: 108, name: 'Chocolate Avocado Mousse', price: 7.99, quantity: 1 },
-    ];
-    
-    setCart(mockCart);
-  }, []);
+    const savedCart = localStorage.getItem('cartItems');
+    const savedDeliveryMethod = localStorage.getItem('selectedDeliveryMethod');
+    const savedRestaurantInfo = localStorage.getItem('restaurantInfo');
+
+    if (savedCart && savedDeliveryMethod && savedRestaurantInfo) {
+      setCart(JSON.parse(savedCart));
+      setDeliveryMethod(savedDeliveryMethod);
+      const restaurantInfo = JSON.parse(savedRestaurantInfo);
+      // You can use restaurantInfo here if needed
+    } else {
+      // If no saved cart data, redirect back to restaurants page
+      navigate('/restaurants');
+    }
+  }, [navigate]);
 
   // Calculate CO2 savings based on delivery method
   useEffect(() => {
@@ -76,9 +82,19 @@ const Checkout = () => {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
+  const calculateDeliveryFee = () => {
+    // Different fees based on delivery method
+    const fees = {
+      bike: 2.99,
+      ev: 3.99,
+      drone: 4.99
+    };
+    return fees[deliveryMethod] || 2.99;
+  };
+
   const calculateTotal = () => {
     const subtotal = calculateSubtotal();
-    const deliveryFee = 2.99;
+    const deliveryFee = calculateDeliveryFee();
     return subtotal + deliveryFee;
   };
 
@@ -104,18 +120,92 @@ const Checkout = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (validateForm()) {
-      setIsLoading(true);
-      
-      // Simulate API call to place order
-      setTimeout(() => {
+    setIsLoading(true);
+    setErrors({});
+
+    try {
+      // Validate form data
+      const validationErrors = validateForm();
+      if (Object.keys(validationErrors).length > 0) {
+        setErrors(validationErrors);
         setIsLoading(false);
-        setIsOrderPlaced(true);
-        setOrderId('ORD-' + Math.floor(100000 + Math.random() * 900000));
-      }, 1500);
+        return;
+      }
+
+      // Get token and restaurant info
+      const token = localStorage.getItem('token');
+      const restaurantInfoStr = localStorage.getItem('restaurantInfo');
+      const cartItemsStr = localStorage.getItem('cartItems');
+
+      if (!token) {
+        throw new Error('Please log in to place an order');
+      }
+
+      if (!restaurantInfoStr || !cartItemsStr) {
+        throw new Error('Missing order information');
+      }
+
+      const restaurantInfo = JSON.parse(restaurantInfoStr);
+      const cartItems = JSON.parse(cartItemsStr);
+
+      // Construct order data
+      const orderData = {
+        restaurantId: Number(restaurantInfo.id),
+        items: cartItems.map(item => ({
+          id: Number(item.id),
+          name: item.name,
+          price: Number(item.price),
+          quantity: Number(item.quantity)
+        })),
+        total: Number(calculateTotal()),
+        deliveryMethod,
+        deliveryAddress: {
+          street: formData.address,
+          city: formData.city,
+          state: 'CA',
+          zipCode: formData.zipCode
+        },
+        paymentMethod: paymentMethod === 'cod' ? 'cash' : 'card'
+      };
+
+      console.log('Sending order data:', orderData);
+      console.log('Token:', token);
+
+      const response = await fetch('http://localhost:5000/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error creating order');
+      }
+
+      const data = await response.json();
+      
+      // Clear cart data from localStorage
+      localStorage.removeItem('cartItems');
+      localStorage.removeItem('selectedDeliveryMethod');
+      localStorage.removeItem('restaurantInfo');
+
+      // Set order placed status and ID
+      setIsOrderPlaced(true);
+      setOrderId(data._id);
+
+    } catch (error) {
+      console.error('Error processing order:', error);
+      setErrors(prev => ({
+        ...prev,
+        submit: error.message || 'Failed to process order. Please try again.'
+      }));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -429,58 +519,6 @@ const Checkout = () => {
                   <div className="space-y-4 mb-6">
                     <div 
                       className={`p-4 rounded-lg border-2 cursor-pointer ${
-                        paymentMethod === 'card' 
-                          ? 'border-primary bg-primary/5' 
-                          : 'border-gray-200 dark:border-gray-700'
-                      }`}
-                      onClick={() => setPaymentMethod('card')}
-                    >
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          id="card"
-                          name="paymentMethod"
-                          checked={paymentMethod === 'card'}
-                          onChange={() => setPaymentMethod('card')}
-                          className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
-                        />
-                        <label 
-                          htmlFor="card" 
-                          className="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                        >
-                          Credit / Debit Card
-                        </label>
-                      </div>
-                    </div>
-                    
-                    <div 
-                      className={`p-4 rounded-lg border-2 cursor-pointer ${
-                        paymentMethod === 'razorpay' 
-                          ? 'border-primary bg-primary/5' 
-                          : 'border-gray-200 dark:border-gray-700'
-                      }`}
-                      onClick={() => setPaymentMethod('razorpay')}
-                    >
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          id="razorpay"
-                          name="paymentMethod"
-                          checked={paymentMethod === 'razorpay'}
-                          onChange={() => setPaymentMethod('razorpay')}
-                          className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
-                        />
-                        <label 
-                          htmlFor="razorpay" 
-                          className="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                        >
-                          Razorpay
-                        </label>
-                      </div>
-                    </div>
-                    
-                    <div 
-                      className={`p-4 rounded-lg border-2 cursor-pointer ${
                         paymentMethod === 'cod' 
                           ? 'border-primary bg-primary/5' 
                           : 'border-gray-200 dark:border-gray-700'
@@ -501,6 +539,32 @@ const Checkout = () => {
                           className="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
                         >
                           Cash on Delivery
+                        </label>
+                      </div>
+                    </div>
+                    
+                    <div 
+                      className={`p-4 rounded-lg border-2 cursor-pointer ${
+                        paymentMethod === 'card' 
+                          ? 'border-primary bg-primary/5' 
+                          : 'border-gray-200 dark:border-gray-700'
+                      }`}
+                      onClick={() => setPaymentMethod('card')}
+                    >
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="card"
+                          name="paymentMethod"
+                          checked={paymentMethod === 'card'}
+                          onChange={() => setPaymentMethod('card')}
+                          className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                        />
+                        <label 
+                          htmlFor="card" 
+                          className="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
+                          Credit / Debit Card
                         </label>
                       </div>
                     </div>
@@ -582,6 +646,21 @@ const Checkout = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Special Instructions */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Special Instructions (Optional)
+                  </label>
+                  <textarea
+                    name="specialInstructions"
+                    value={formData.specialInstructions}
+                    onChange={handleChange}
+                    rows="3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    placeholder="Add any special instructions for delivery..."
+                  ></textarea>
+                </div>
               </form>
             </div>
             
@@ -616,7 +695,7 @@ const Checkout = () => {
                   </div>
                   <div className="flex justify-between mb-2">
                     <span className="text-gray-600 dark:text-gray-400">Delivery Fee</span>
-                    <span className="text-dark dark:text-white">$2.99</span>
+                    <span className="text-dark dark:text-white">${calculateDeliveryFee().toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-semibold text-lg">
                     <span className="text-dark dark:text-white">Total</span>

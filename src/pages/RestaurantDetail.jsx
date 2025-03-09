@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 
 // Mock data for restaurants (same as in Restaurants.jsx)
 const mockRestaurants = [
@@ -45,6 +45,7 @@ const mockRestaurants = [
 
 const RestaurantDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [restaurant, setRestaurant] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [cart, setCart] = useState([]);
@@ -115,6 +116,22 @@ const RestaurantDetail = () => {
 
   const calculateTotal = () => {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const handleCheckout = () => {
+    if (cart.length > 0) {
+      // Save cart data to localStorage
+      localStorage.setItem('cartItems', JSON.stringify(cart));
+      localStorage.setItem('selectedDeliveryMethod', selectedDeliveryMethod);
+      localStorage.setItem('restaurantInfo', JSON.stringify({
+        id: restaurant.id,
+        name: restaurant.name,
+        deliveryFee: restaurant.deliveryFee
+      }));
+      
+      // Navigate to checkout page
+      navigate('/checkout');
+    }
   };
 
   if (isLoading) {
@@ -356,7 +373,21 @@ const RestaurantDetail = () => {
               <button 
                 className={`w-full btn btn-primary py-3 ${cart.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                 disabled={cart.length === 0}
-                onClick={() => cart.length > 0 && alert('Checkout functionality would go here!')}
+                onClick={() => {
+                  if (cart.length > 0) {
+                    // Save cart data to localStorage
+                    localStorage.setItem('cartItems', JSON.stringify(cart));
+                    localStorage.setItem('selectedDeliveryMethod', selectedDeliveryMethod);
+                    localStorage.setItem('restaurantInfo', JSON.stringify({
+                      id: restaurant.id,
+                      name: restaurant.name,
+                      deliveryFee: restaurant.deliveryFee
+                    }));
+                    
+                    // Navigate to checkout page
+                    navigate('/checkout');
+                  }
+                }}
               >
                 Proceed to Checkout
               </button>

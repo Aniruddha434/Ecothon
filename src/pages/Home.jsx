@@ -1,8 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const Home = () => {
   const [savedCO2, setSavedCO2] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Set visibility after component mounts for animations
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   // Calculate CO2 savings based on delivery method
   const calculateCO2Savings = (method) => {
@@ -28,27 +34,76 @@ const Home = () => {
   return (
     <div className="animate-fadeIn">
       {/* Hero Section */}
-      <section className="relative h-screen flex items-center">
-        {/* Background Image with Overlay */}
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80')" }}>
+      <section className="relative h-screen flex items-center overflow-hidden">
+        {/* Background Image with Overlay and Parallax Effect */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transform scale-110 transition-transform duration-10000 ease-linear"
+          style={{ 
+            backgroundImage: "url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80')",
+            animation: "slowZoom 30s infinite alternate"
+          }}
+        >
           <div className="absolute inset-0 bg-dark/70"></div>
         </div>
         
+        {/* Animated Eco Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          {/* Floating leaves */}
+          <div className="leaf leaf-1"></div>
+          <div className="leaf leaf-2"></div>
+          <div className="leaf leaf-3"></div>
+          <div className="leaf leaf-4"></div>
+          
+          {/* Animated gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 animate-pulse opacity-30"></div>
+          
+          {/* Animated delivery vehicles */}
+          <div className="delivery-vehicle bike">🚲</div>
+          <div className="delivery-vehicle ev">🚚</div>
+          <div className="delivery-vehicle drone">🚁</div>
+          
+          {/* Floating food container */}
+          <div className="food-container">
+            <div className="food-emoji">🥗</div>
+            <div className="food-emoji">🍔</div>
+            <div className="food-emoji">🍕</div>
+            <div className="food-emoji">🍱</div>
+            <div className="food-emoji">🥤</div>
+            <div className="glow-effect"></div>
+          </div>
+        </div>
+        
         <div className="container relative z-10 mx-auto px-4 text-center text-white">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">
-            Eco-Friendly <span className="text-primary">Food Delivery</span>
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-            Delicious food delivered to your doorstep with zero guilt. 
-            Choose sustainable delivery options and reduce your carbon footprint.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link to="/restaurants" className="btn btn-primary text-lg px-8 py-3">
+          <div className={`transition-all duration-1000 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 relative">
+              <span className="inline-block animate-float-slow">Eco</span>
+              <span className="inline-block">-</span>
+              <span className="inline-block animate-float-slower">Friendly</span>
+              <span className="block text-primary animate-pulse-slow">Food Delivery</span>
+            </h1>
+          </div>
+          
+          <div className={`transition-all duration-1000 delay-300 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+              Delicious food delivered to your doorstep with zero guilt. 
+              Choose sustainable delivery options and reduce your carbon footprint.
+            </p>
+          </div>
+          
+          <div className={`flex flex-col sm:flex-row justify-center gap-4 transition-all duration-1000 delay-500 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <Link to="/restaurants" className="btn btn-primary text-lg px-8 py-3 hover:scale-105 transition-transform">
               Order Now
             </Link>
-            <a href="#how-it-works" className="btn bg-white text-dark hover:bg-gray-100 text-lg px-8 py-3">
+            <a href="#how-it-works" className="btn bg-white text-dark hover:bg-gray-100 text-lg px-8 py-3 hover:scale-105 transition-transform">
               Learn More
             </a>
+          </div>
+          
+          {/* Animated scroll indicator */}
+          <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
           </div>
         </div>
       </section>

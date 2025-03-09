@@ -1,118 +1,67 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-
-// Mock order data
-const mockOrder = {
-  id: '12345',
-  restaurant: {
-    id: 1,
-    name: 'Green Bistro',
-    image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1080&q=80',
-    address: '123 Green Street, Eco City',
-  },
-  customer: {
-    name: 'John Doe',
-    address: '456 Sustainable Ave, Eco City',
-    phone: '+1 (555) 123-4567',
-  },
-  items: [
-    { id: 101, name: 'Organic Garden Salad', price: 8.99, quantity: 1 },
-    { id: 104, name: 'Vegetable Risotto', price: 14.99, quantity: 2 },
-    { id: 108, name: 'Chocolate Avocado Mousse', price: 7.99, quantity: 1 },
-  ],
-  deliveryMethod: 'drone',
-  deliveryPerson: {
-    name: 'Drone #D-42',
-    rating: 4.9,
-    image: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80',
-  },
-  status: 'in-transit', // 'preparing', 'ready', 'in-transit', 'delivered'
-  estimatedDeliveryTime: '15-20 min',
-  orderTime: '2023-06-15T14:30:00Z',
-  deliveryFee: 2.99,
-  subtotal: 46.96,
-  total: 49.95,
-  co2Saved: 0.7,
-};
-
-// Mock tracking coordinates
-const mockTrackingPath = [
-  { lat: 37.7749, lng: -122.4194 }, // Starting point (restaurant)
-  { lat: 37.7755, lng: -122.4180 },
-  { lat: 37.7761, lng: -122.4166 },
-  { lat: 37.7768, lng: -122.4152 },
-  { lat: 37.7775, lng: -122.4138 },
-  { lat: 37.7782, lng: -122.4124 },
-  { lat: 37.7789, lng: -122.4110 },
-  { lat: 37.7796, lng: -122.4096 }, // Destination (customer)
-];
+import { useAuth } from '../context/AuthContext';
 
 const OrderTracking = () => {
   const { id } = useParams();
+  const { user } = useAuth();
   const [order, setOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentPosition, setCurrentPosition] = useState(0);
-  const [currentCoordinates, setCurrentCoordinates] = useState(null);
-  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Simulate API call to get order details
-    setTimeout(() => {
-      setOrder(mockOrder);
-      setCurrentCoordinates(mockTrackingPath[0]);
-      setIsLoading(false);
-    }, 1000);
+    const fetchOrder = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:5000/api/orders/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch order details');
+        }
+
+        const data = await response.json();
+        setOrder(data);
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchOrder();
   }, [id]);
 
-  useEffect(() => {
-    if (!order || order.status !== 'in-transit') return;
-
-    // Simulate movement along the path
-    const interval = setInterval(() => {
-      setCurrentPosition(prev => {
-        if (prev < mockTrackingPath.length - 1) {
-          setCurrentCoordinates(mockTrackingPath[prev + 1]);
-          setProgress(((prev + 1) / (mockTrackingPath.length - 1)) * 100);
-          return prev + 1;
-        } else {
-          clearInterval(interval);
-          // Update order status to delivered when reached destination
-          setOrder(prev => ({ ...prev, status: 'delivered' }));
-          return prev;
-        }
-      });
-    }, 3000); // Move every 3 seconds
-
-    return () => clearInterval(interval);
-  }, [order]);
-
-  const getStatusText = (status) => {
-    switch(status) {
-      case 'preparing':
-        return 'Preparing your order';
-      case 'ready':
-        return 'Order ready for pickup';
-      case 'in-transit':
-        return 'Order on the way';
-      case 'delivered':
-        return 'Order delivered';
-      default:
-        return 'Processing order';
-    }
+  // Helper function to get status step number
+  const getStatusStep = (status) => {
+    const steps = {
+      'new': 0,
+      'preparing': 1,
+      'ready': 2,
+      'out-for-delivery': 3,
+      'delivered': 4
+    };
+    return steps[status] || 0;
   };
 
-  const getStatusStep = (status) => {
+  // Helper function to get status text
+  const getStatusText = (status) => {
     switch(status) {
+      case 'new':
+        return 'Order Received';
       case 'preparing':
-        return 1;
+        return 'Preparing Your Order';
       case 'ready':
-        return 2;
-      case 'in-transit':
-        return 3;
+        return 'Order Ready for Delivery';
+      case 'out-for-delivery':
+        return 'Order Out for Delivery';
       case 'delivered':
-        return 4;
+        return 'Order Delivered';
       default:
-        return 0;
+        return 'Order Status Unknown';
     }
   };
 
@@ -124,13 +73,13 @@ const OrderTracking = () => {
     );
   }
 
-  if (!order) {
+  if (error || !order) {
     return (
       <div className="pt-24 pb-16">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-2xl font-bold mb-4 text-dark dark:text-white">Order not found</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-8">
-            The order you're looking for doesn't exist or has been removed.
+            {error || "The order you're looking for doesn't exist or has been removed."}
           </p>
           <Link to="/restaurants" className="btn btn-primary">
             Order Food
@@ -148,7 +97,7 @@ const OrderTracking = () => {
             Track Your Order
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Order #{order.id} • Placed on {new Date(order.orderTime).toLocaleString()}
+            Order #{order._id} • Placed on {new Date(order.orderTime).toLocaleString()}
           </p>
         </div>
 
@@ -227,51 +176,29 @@ const OrderTracking = () => {
             </div>
             
             {/* Map */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-              <h2 className="text-xl font-bold mb-4 text-dark dark:text-white">Live Tracking</h2>
-              
-              {/* Map Placeholder - In a real app, this would be a Google Maps component */}
-              <div className="relative bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden h-80">
-                {/* This is a placeholder for the map. In a real app, you would use Google Maps API */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <p className="text-gray-600 dark:text-gray-400">
-                    Google Maps would be integrated here in a production app
-                  </p>
-                </div>
-                
-                {/* Progress Bar */}
-                <div className="absolute bottom-0 left-0 w-full h-2 bg-gray-300 dark:bg-gray-600">
-                  <div 
-                    className="h-full bg-primary transition-all duration-500"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
-                
-                {/* Coordinates Display (for demonstration) */}
-                {currentCoordinates && (
-                  <div className="absolute bottom-4 left-4 bg-white dark:bg-gray-800 p-2 rounded-md shadow-md text-xs">
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Lat: {currentCoordinates.lat.toFixed(4)}, Lng: {currentCoordinates.lng.toFixed(4)}
-                    </p>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold mb-4 text-dark dark:text-white">Delivery Location</h2>
+              <div className="aspect-w-16 aspect-h-9 mb-4">
+                <div className="w-full h-64 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                  {/* Map will be implemented here */}
+                  <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                    Map View Coming Soon
                   </div>
-                )}
+                </div>
               </div>
               
-              {/* Delivery Info */}
-              {order.status === 'in-transit' && (
+              {/* Delivery Person Info */}
+              {order.status === 'out-for-delivery' && (
                 <div className="mt-4 flex items-center">
-                  <div className="w-12 h-12 rounded-full overflow-hidden mr-4">
-                    <img 
-                      src={order.deliveryPerson.image} 
-                      alt={order.deliveryPerson.name} 
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="w-12 h-12 rounded-full overflow-hidden mr-4 bg-gray-200 dark:bg-gray-700">
+                    <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                      🚚
+                    </div>
                   </div>
                   <div>
-                    <p className="font-medium text-dark dark:text-white">{order.deliveryPerson.name}</p>
+                    <p className="font-medium text-dark dark:text-white">Your Delivery Partner</p>
                     <div className="flex items-center">
-                      <span className="text-yellow-400 text-sm mr-1">★</span>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">{order.deliveryPerson.rating}</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">On the way with your order</span>
                     </div>
                   </div>
                   <div className="ml-auto">
@@ -286,7 +213,7 @@ const OrderTracking = () => {
             </div>
             
             {/* CO2 Savings */}
-            <div className="bg-primary/10 rounded-lg p-6">
+            <div className="bg-primary/10 rounded-lg p-6 mt-8">
               <div className="flex items-center">
                 <div className="mr-4 text-4xl">🌱</div>
                 <div>
@@ -295,7 +222,7 @@ const OrderTracking = () => {
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">
                     By choosing {order.deliveryMethod === 'bike' ? 'E-Bike' : order.deliveryMethod === 'ev' ? 'EV Van' : 'Drone'} delivery, 
-                    you've saved <span className="font-semibold text-primary">{order.co2Saved} kg</span> of CO₂ emissions.
+                    you've saved <span className="font-semibold text-primary">{order.co2Saved.toFixed(2)} kg</span> of CO₂ emissions.
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     That's equivalent to planting {(order.co2Saved * 0.1).toFixed(1)} trees! 🌳
@@ -312,14 +239,14 @@ const OrderTracking = () => {
               
               {/* Restaurant Info */}
               <div className="flex items-center mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
-                <img 
-                  src={order.restaurant.image} 
-                  alt={order.restaurant.name} 
-                  className="w-16 h-16 object-cover rounded-lg mr-4"
-                />
+                <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-lg mr-4 flex items-center justify-center">
+                  <span className="text-2xl">🍽️</span>
+                </div>
                 <div>
-                  <h3 className="font-semibold text-dark dark:text-white">{order.restaurant.name}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{order.restaurant.address}</p>
+                  <h3 className="font-semibold text-dark dark:text-white">Restaurant #{order.restaurantId}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {order.deliveryAddress.street}, {order.deliveryAddress.city}
+                  </p>
                 </div>
               </div>
               
@@ -343,9 +270,11 @@ const OrderTracking = () => {
               {/* Delivery Address */}
               <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
                 <h3 className="font-semibold mb-3 text-dark dark:text-white">Delivery Address</h3>
-                <p className="text-gray-600 dark:text-gray-400">{order.customer.name}</p>
-                <p className="text-gray-600 dark:text-gray-400">{order.customer.address}</p>
-                <p className="text-gray-600 dark:text-gray-400">{order.customer.phone}</p>
+                <p className="text-gray-600 dark:text-gray-400">{user?.name}</p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {order.deliveryAddress.street}<br />
+                  {order.deliveryAddress.city}, {order.deliveryAddress.state} {order.deliveryAddress.zipCode}
+                </p>
               </div>
               
               {/* Payment Summary */}
@@ -354,15 +283,25 @@ const OrderTracking = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
-                    <span className="text-dark dark:text-white">${order.subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Delivery Fee</span>
-                    <span className="text-dark dark:text-white">${order.deliveryFee.toFixed(2)}</span>
+                    <span className="text-dark dark:text-white">${order.total.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-semibold pt-2 border-t border-gray-200 dark:border-gray-700">
                     <span className="text-dark dark:text-white">Total</span>
                     <span className="text-dark dark:text-white">${order.total.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <span className="text-gray-600 dark:text-gray-400">Payment Method</span>
+                    <span className="text-dark dark:text-white capitalize">{order.paymentMethod}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Payment Status</span>
+                    <span className={`capitalize ${
+                      order.paymentStatus === 'paid' 
+                        ? 'text-green-600 dark:text-green-400' 
+                        : 'text-yellow-600 dark:text-yellow-400'
+                    }`}>
+                      {order.paymentStatus}
+                    </span>
                   </div>
                 </div>
               </div>

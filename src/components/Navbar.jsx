@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = ({ darkMode, toggleDarkMode }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const { user, logout, isRestaurantOwner } = useAuth();
 
   // Handle scroll effect
   useEffect(() => {
@@ -48,15 +50,34 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
           <Link to="/restaurants" className="text-dark dark:text-white hover:text-primary dark:hover:text-primary transition-colors">
             Restaurants
           </Link>
+          <Link to="/environmental-impact" className="text-dark dark:text-white hover:text-primary dark:hover:text-primary transition-colors">
+            Environmental Impact
+          </Link>
           <Link to="/order-tracking/latest" className="text-dark dark:text-white hover:text-primary dark:hover:text-primary transition-colors">
             Track Order
           </Link>
-          <Link to="/restaurant-dashboard" className="text-dark dark:text-white hover:text-primary dark:hover:text-primary transition-colors">
-            Restaurant Dashboard
-          </Link>
-          <Link to="/login" className="btn btn-primary">
-            Sign In
-          </Link>
+          {isRestaurantOwner() && (
+            <Link to="/restaurant-dashboard" className="text-dark dark:text-white hover:text-primary dark:hover:text-primary transition-colors">
+              Restaurant Dashboard
+            </Link>
+          )}
+          {user ? (
+            <div className="flex items-center space-x-4">
+              <span className="text-dark dark:text-white">
+                {user.name}
+              </span>
+              <button
+                onClick={logout}
+                className="btn btn-primary"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <Link to="/login" className="btn btn-primary">
+              Sign In
+            </Link>
+          )}
           
           {/* Dark Mode Toggle */}
           <button 
@@ -122,15 +143,34 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
             <Link to="/restaurants" className="text-dark dark:text-white hover:text-primary dark:hover:text-primary transition-colors py-2">
               Restaurants
             </Link>
+            <Link to="/environmental-impact" className="text-dark dark:text-white hover:text-primary dark:hover:text-primary transition-colors py-2">
+              Environmental Impact
+            </Link>
             <Link to="/order-tracking/latest" className="text-dark dark:text-white hover:text-primary dark:hover:text-primary transition-colors py-2">
               Track Order
             </Link>
-            <Link to="/restaurant-dashboard" className="text-dark dark:text-white hover:text-primary dark:hover:text-primary transition-colors py-2">
-              Restaurant Dashboard
-            </Link>
-            <Link to="/login" className="btn btn-primary text-center">
-              Sign In
-            </Link>
+            {isRestaurantOwner() && (
+              <Link to="/restaurant-dashboard" className="text-dark dark:text-white hover:text-primary dark:hover:text-primary transition-colors py-2">
+                Restaurant Dashboard
+              </Link>
+            )}
+            {user ? (
+              <>
+                <div className="text-dark dark:text-white py-2">
+                  {user.name}
+                </div>
+                <button
+                  onClick={logout}
+                  className="btn btn-primary text-center"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <Link to="/login" className="btn btn-primary text-center">
+                Sign In
+              </Link>
+            )}
           </div>
         </div>
       )}

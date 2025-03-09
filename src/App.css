@@ -61,3 +61,290 @@ html {
   animation: slideUp 0.5s ease-out;
 }
 
+/* New animations for hero section */
+@keyframes slowZoom {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-float-slow {
+  animation: float 4s ease-in-out infinite;
+  display: inline-block;
+}
+
+.animate-float-slower {
+  animation: float 6s ease-in-out infinite;
+  animation-delay: 1s;
+  display: inline-block;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+/* Floating leaves animation */
+@keyframes floatLeaf {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--translate-x, 100px), var(--translate-y, -100px)) rotate(var(--rotate, 360deg));
+    opacity: 0;
+  }
+}
+
+.leaf {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310B981'%3E%3Cpath d='M17.75 3.39l-4.25 4.24-4.25-4.24-1.06 1.06 4.25 4.24-4.25 4.24 1.06 1.06 4.25-4.24 4.25 4.24 1.06-1.06-4.25-4.24 4.25-4.24-1.06-1.06z'%3E%3C/path%3E%3C/svg%3E");
+  background-size: contain;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.leaf-1 {
+  top: 20%;
+  left: 10%;
+  --translate-x: 100px;
+  --translate-y: 100px;
+  --rotate: 360deg;
+  animation: floatLeaf 15s linear infinite;
+}
+
+.leaf-2 {
+  top: 60%;
+  left: 20%;
+  --translate-x: 150px;
+  --translate-y: -150px;
+  --rotate: -360deg;
+  animation: floatLeaf 20s linear infinite;
+  animation-delay: 2s;
+}
+
+.leaf-3 {
+  top: 30%;
+  right: 20%;
+  --translate-x: -120px;
+  --translate-y: 120px;
+  --rotate: 720deg;
+  animation: floatLeaf 18s linear infinite;
+  animation-delay: 5s;
+}
+
+.leaf-4 {
+  top: 70%;
+  right: 10%;
+  --translate-x: -100px;
+  --translate-y: -100px;
+  --rotate: -720deg;
+  animation: floatLeaf 25s linear infinite;
+  animation-delay: 8s;
+}
+
+/* Animated delivery vehicles */
+@keyframes moveVehicle {
+  0% {
+    transform: translate(var(--start-x, -100px), var(--start-y, 0)) rotate(var(--start-rotate, 0deg));
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--end-x, 100vw), var(--end-y, 0)) rotate(var(--end-rotate, 0deg));
+    opacity: 0;
+  }
+}
+
+.delivery-vehicle {
+  position: absolute;
+  font-size: 2rem;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+  opacity: 0;
+  z-index: 5;
+}
+
+.bike {
+  --start-x: -50px;
+  --start-y: 40vh;
+  --end-x: calc(100vw + 50px);
+  --end-y: 45vh;
+  --start-rotate: 0deg;
+  --end-rotate: 0deg;
+  top: 40vh;
+  left: -50px;
+  animation: moveVehicle 15s linear infinite;
+  animation-delay: 1s;
+}
+
+.ev {
+  --start-x: calc(100vw + 50px);
+  --start-y: 60vh;
+  --end-x: -50px;
+  --end-y: 55vh;
+  --start-rotate: 180deg;
+  --end-rotate: 180deg;
+  top: 60vh;
+  right: -50px;
+  animation: moveVehicle 20s linear infinite;
+  animation-delay: 5s;
+  transform: scaleX(-1);
+}
+
+.drone {
+  --start-x: 30vw;
+  --start-y: -50px;
+  --end-x: 70vw;
+  --end-y: calc(100vh + 50px);
+  --start-rotate: 0deg;
+  --end-rotate: 0deg;
+  top: -50px;
+  left: 30vw;
+  animation: moveVehicle 12s linear infinite;
+  animation-delay: 8s;
+}
+
+/* Floating food container */
+@keyframes floatContainer {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  25% {
+    transform: translate(-52%, -48%) rotate(2deg);
+  }
+  50% {
+    transform: translate(-50%, -52%) rotate(0deg);
+  }
+  75% {
+    transform: translate(-48%, -50%) rotate(-2deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+}
+
+@keyframes rotateEmoji {
+  0% {
+    transform: rotate(0deg) translateY(0);
+  }
+  50% {
+    transform: rotate(180deg) translateY(-5px);
+  }
+  100% {
+    transform: rotate(360deg) translateY(0);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+.food-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150px;
+  height: 150px;
+  transform: translate(-50%, -50%);
+  animation: floatContainer 8s ease-in-out infinite;
+  z-index: 4;
+}
+
+.food-emoji {
+  position: absolute;
+  font-size: 2rem;
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.7));
+  animation: rotateEmoji 15s linear infinite;
+}
+
+.food-emoji:nth-child(1) {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  animation-delay: 0s;
+}
+
+.food-emoji:nth-child(2) {
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  animation-delay: 3s;
+}
+
+.food-emoji:nth-child(3) {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  animation-delay: 6s;
+}
+
+.food-emoji:nth-child(4) {
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  animation-delay: 9s;
+}
+
+.food-emoji:nth-child(5) {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: 12s;
+}
+
+.glow-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, rgba(16, 185, 129, 0) 70%);
+  transform: translate(-50%, -50%);
+  animation: glowPulse 4s ease-in-out infinite;
+  z-index: -1;
+}
+
